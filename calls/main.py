@@ -1,6 +1,6 @@
 import pandas as pd
 from bokeh.io import curdoc
-from bokeh.layouts import layout, widgetbox
+from bokeh.layouts import layout, widgetbox, gridplot
 from bokeh.plotting import figure
 from bokeh.charts import Bar
 from bokeh.models import (ColumnDataSource, HoverTool, Text, Div, Circle,
@@ -22,7 +22,8 @@ calls = calls.sort_values(by='time')
 del calls['time']
 del calls['server']
 
-now = pd.datetime(2016, 8, 29, 14, 25, 10, 733298)
+now = pd.datetime.now()
+#now = pd.datetime(2016, 8, 30, 14, 25, 10, 733298)
 past = calls[calls.index < now]
 
 q = past.loc[:,['q_time','q_exit', 'outcome', 'server_abv']]
@@ -77,7 +78,7 @@ else:
 lw_sla = round((longest_waiting) / 3, 1)
 
 q200 = q.tail(100)
-service = figure(plot_width=600, plot_height=600, title="Time in Queue - last 100 calls",
+service = figure(plot_width=1000, plot_height=500, title="Time in Queue - last 100 calls",
                  x_axis_type="datetime", x_axis_label="Time", y_axis_label="Queue time (seconds)")
 service.line(x=q200.index, y=q200['q_time'], line_width=2, color='grey', alpha=0.6, legend="Q time")
 service.circle(x=q200.index, y=q200['q_time'], size=5, color='grey', alpha=0.6, legend="Q time")
@@ -86,10 +87,11 @@ service.line(x=q200.index, y=300, line_width=2, line_dash=[2,2], color='red', al
 service.line(x=q200.index, y=q200['q_time20ma'], line_width=4, color='teal', alpha=1,
     legend="Moving average 20")
 
+
 q50 = q.tail(50)
 bar = Bar(q50, 'server_abv', 
         title="Agents - last 50 calls", color='teal',
-        width=300, height=300, legend=False,
+        width=350, height=300, legend=False,
         xlabel="Agent", ylabel="Calls",
         )
 
@@ -115,32 +117,40 @@ wd = dict(
 
 source = ColumnDataSource(wd)
 
-w = figure(width=900, height=200, x_range=Range1d(0,9), y_range=Range1d(0,2))
+w = figure(width=1350, height=300, x_range=Range1d(0,9), y_range=Range1d(0,2))
 w.annular_wedge('xs', 'ys', inner_radius=0.25, outer_radius=0.4, source=source,
                end_angle_units='deg', start_angle_units='deg', direction='clock',
                 start_angle=90, end_angle='angle', color="teal", alpha=0.9)
-w.text('xs', 'ys', text='percent', text_font_size="10pt", source=source,
+w.text('xs', 'ys', text='percent', text_font_size="14pt", source=source,
     text_align="center", text_baseline="middle", color='teal')
-w.text('xs', 'ys', text='t1', source=source, text_font_size='12pt',
-    text_color='grey', x_offset=0, y_offset=-60,
+w.text('xs', 'ys', text='t1', source=source, text_font_size='16pt', 
+    text_color='grey', x_offset=0, y_offset=-80,
     text_align="left", text_baseline="middle", color='teal')
-w.text('xs', 'ys', text='h1', source=source, text_font_size='10',
-    text_color='grey', x_offset=40, y_offset=-30,
+w.text('xs', 'ys', text='h1', source=source, text_font_size='13', 
+    text_color='grey', x_offset=70, y_offset=-30,
     text_align="left", text_baseline="middle", color='teal')
-w.text('xs', 'ys', text='h2', source=source, text_font_size='10',
-    text_color='grey', x_offset=40, y_offset=10,
+w.text('xs', 'ys', text='h2', source=source, text_font_size='13', 
+    text_color='grey', x_offset=70, y_offset=10,
     text_align="left", text_baseline="middle", color='teal')
-w.text('xs', 'ys', text='n1', source=source, text_font_size='12pt', 
-    text_color='black', x_offset=40, y_offset=-10,
+w.text('xs', 'ys', text='n1', source=source, text_font_size='14pt', 
+    text_color='black', x_offset=70, y_offset=-10,
     text_align="left", text_baseline="middle", color='teal')
-w.text('xs', 'ys', text='n2', source=source, text_font_size='12pt', 
-    text_color='black', x_offset=40, y_offset=30,
+w.text('xs', 'ys', text='n2', source=source, text_font_size='14pt', 
+    text_color='black', x_offset=70, y_offset=30,
     text_align="left", text_baseline="middle", color='teal')
+w.xaxis.visible = False
+w.xgrid.visible = False
+w.yaxis.visible = False
+w.ygrid.visible = False
 
+'''
 layout = layout([
         [w],
         [service, bar]
-    ], sizing_mode='scale_width')
+    ], sizing_mode='stretch_both')
+'''
+# make a grid
+grid = gridplot([[w], [service, bar]])
 
-curdoc().add_root(layout)
-curdoc().title = "Employment"
+curdoc().add_root(grid)
+curdoc().title = "Calls"
