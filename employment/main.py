@@ -4,14 +4,15 @@ from bokeh.io import curdoc
 from bokeh.layouts import layout, widgetbox
 from bokeh.models import (ColumnDataSource, HoverTool, Text, Div, Circle,
                           SingleIntervalTicker, Slider, Button, Label, Range1d)
-#from bokeh.palettes import Spectral6
+
 from bokeh.plotting import figure
 
+# read data from csv
 sub = pd.read_csv('subsectors2.csv', index_col='date', parse_dates=True)
 
 years = list(range(2006, 2016))
 sources = {}
-
+# build a list of data sources - one for each year
 for year in years:
     subyr = sub[sub.index.year==year]
     sources[year] = ColumnDataSource(data=dict(
@@ -25,17 +26,18 @@ for year in years:
         color=subyr.color,
     ))
 
+# build plot
 p = figure(plot_width=800, plot_height=600, title="Employment ",
     tools=['pan', 'wheel_zoom', 'reset']
     )
 p.x_range = Range1d(0, 45)
 p.y_range = Range1d(-60, 100)
-#p.line([0, 50], [0, 0], alpha=0.7)
 
+# create object for circle glyphs so we can change the source
 cir = p.circle('x', 'y', 
             size='size', color='color', alpha=0.7
             )
-
+# add hover tooltip
 hover = HoverTool(tooltips=[
         ("Sector", "@sector"),
         ("Numbers", "@numbers"),
@@ -51,18 +53,22 @@ p.xaxis.axis_label = "Percentage of temporary workers"
 p.yaxis.ticker = SingleIntervalTicker(interval=20)
 p.yaxis.axis_label = "Percentage change since 2006"
 
+# show the year as a label on the chart
 label = Label(x=30, y=-50, text=str(years[0]), text_font_size='70pt', text_color='#cccccc')
 p.add_layout(label)
 
+# set initial data to first year
 initial = 2006
 cir.data_source.data = sources[initial].data
 label.text = str(initial)
 
+# update callback when slider value changes
 def slider_update (attrname, old, new):
     year = slider.value
     label.text = str(year)
     cir.data_source.data = sources[year].data
 
+# add slider
 slider = Slider(start=years[0], end=years[-1], value=years[0], step=1, title="Year")
 slider.on_change('value', slider_update)
 

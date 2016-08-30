@@ -107,7 +107,7 @@ def get_data():
 	    ys = [1, 1, 1, 1],
 	    t1 = ['Total calls today', 'Calls waiting', 'Answered within SLA', 'Abandoned in queue'],
 	    h1 = ['Calls received', 'Waiting now', 'Today', 'Today'],
-	    h2 = ['% q or service', 'Longest waiting', 'Current', 'Current'],
+	    h2 = ['Queued or service', 'Longest waiting', 'Current', 'Current'],
 	    n1 = [total_calls, calls_waiting, sla_today, ser_today],
 	    n2 = [total_queued, longest_waiting, avg_current_sla, avg_current_ser],    
 	    percent = percent,
