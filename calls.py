@@ -90,7 +90,7 @@ def get_data():
 
 	q200 = q.tail(100)
 
-	q50 = q.tail(50)
+	#q50 = q.tail(50)
 
 	centre = [q_percent, lw_sla, avg_current_sla, avg_current_ser]
 	angle = []
@@ -118,12 +118,13 @@ def get_data():
 	source = ColumnDataSource(wd)
 	s_source = ColumnDataSource(q200)
 
-	return s_source, q50, source
+	#return s_source, q50, source
+	return s_source, source
 
-s_source, q50, source = get_data()
+s_source, source = get_data()
 
 # plot timeseries graph showing q time of each call
-service = figure(plot_width=1000, plot_height=500, title="Time in Queue - last 100 calls",
+service = figure(plot_width=1200, plot_height=500, title="Time in Queue - last 100 calls",
                      x_axis_type="datetime", x_axis_label="Time", y_axis_label="Queue time (seconds)")
 s1 = service.line('time', 'q_time', source=s_source, 
 	line_width=2, color='grey', alpha=0.6, legend="Q time")
@@ -135,14 +136,14 @@ s4 = service.line('time', 'q_time20ma', source=s_source,
 	line_width=4, color='teal', alpha=1, legend="Moving average 20")
 
 serviceglyphs = [s1, s2, s3, s4]
-
+'''
 # plot bar chart of agents
 bar = Bar(q50, 'server_abv', 
         title="Agents - last 50 calls", color='teal',
         width=350, height=300, legend=False,
         xlabel="Agent", ylabel="Calls",
         )
-
+'''
 # plot wedges and text 
 w = figure(width=1350, height=300, x_range=Range1d(0,9), y_range=Range1d(0,2))
 waw = w.annular_wedge('xs', 'ys', inner_radius=0.25, outer_radius=0.4, source=source,
@@ -174,7 +175,7 @@ w.ygrid.visible = False
 wedgeglyphs = [waw, wpercent, wt1, wh1, wh2, wn1, wn2]
 
 # make a grid
-grid = gridplot([[w], [service, bar]])
+grid = gridplot([w], [service])
 
 
 # open a session to keep local doc in sync 
@@ -182,7 +183,7 @@ session = push_session(curdoc())
 
 # callback function to update data sources 
 def update():
-	new_s_source, newq50, new_source = get_data()
+	new_s_source, new_source = get_data()
 	for wedge in wedgeglyphs:
 		wedge.data_source.data = new_source.data
 	for s in serviceglyphs:

@@ -63,6 +63,7 @@ cir.data_source.data = sources[initial].data
 label.text = str(initial)
 
 # update callback when slider value changes
+# label and source for cir updated
 def slider_update (attrname, old, new):
     year = slider.value
     label.text = str(year)
