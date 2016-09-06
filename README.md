@@ -11,10 +11,12 @@ Python, Jupyter Notebook, Pandas, Bokeh.
 All the tools needed for the project are available to download and install separately for Linux, Mac or Windows operating systems. However, the quickest and most straightforward option may be to install them using a data science platform called Anaconda. The open source version of Anaconda has over 700 popular data science packages for Python, R and Scala. Python packages include Pandas, Matplotlib and Jupyter Notebook, and of course Bokeh. There is also an inbuilt package and environment manager, Conda, that can be used from the command line, so you can work in an isolated environment with managed dependencies.
 
 ##Bokeh
-The main Bokeh documentation and reference material is available at bokeh.pydata.org/en/0.12.1/. It includes a User Guide for getting started, and for setting up Jupyter Notebook to use bokeh. Examples of Bokeh plots are available in the Gallery.
+The main Bokeh documentation and reference material is available at http://bokeh.pydata.org/en/0.12.1/. It includes a User Guide for getting started, and for setting up Jupyter Notebook to use bokeh. Examples of Bokeh plots are available in the Gallery.
 A set of sample data for the examples used in the documentation can be downloaded with the terminal command:
 
->Bokeh sampledata
+```
+Bokeh sampledata
+```
 
 Detailed reference information about using the various classes, models and objects is in the Reference Guide.
 
@@ -25,7 +27,7 @@ Bokeh is developing rapidly so some sources of information are out of date, but 
 Jupyter Notebook documentation including quickstart guides can be found at http://jupyter.readthedocs.io/en/latest/index.html. It is quite intuitive to use.
 The notebook dashboard also ties in with conda environments, so you can create a new notebook in a particular environment. 
 
-Pandas documentation for the latest version 0.18.1 is at http://pandas.pydata.org/pandas-docs/version/0.18.0/ with a 10 Minutes to pandas guide for beginners.
+Pandas documentation for the latest version 0.18.1 is at http://pandas.pydata.org/pandas-docs/version/0.18.0/ with a _10 Minutes to pandas_ guide for beginners.
 
 ##Data
 ###Rainfall
