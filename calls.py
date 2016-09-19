@@ -63,8 +63,8 @@ def get_data():
 	q['q_time20ma'] = pd.Series(q['q_time']).rolling(window=20).mean()
 
 	
-	total_calls = len(past.index)
-	total_queued = len(q.index)
+	total_calls = past.index.size
+	total_queued = q.index.size
 	q_percent = round((total_queued * 100) / total_calls, 1)
 
 	sla_today = round(q.sla.mean() * 100, 1)
@@ -78,7 +78,7 @@ def get_data():
 	total_call_time = past.ser_time.sum()
 
 	waiting = past[make_today(past['q_exit']) > now]
-	calls_waiting = len(waiting.index)
+	calls_waiting = waiting.index.size
 	oldest_waiting = make_today(waiting['q_start']).min()
 	wait = (now - oldest_waiting).total_seconds()
 
@@ -114,17 +114,28 @@ def get_data():
 	    angle = angle
 	)
 
-	# create ColumnDataSource objects from dictionary and dataframe
+	# prepare data for bar chart
+	# get only served calls
+	qser = q[q['ser'] == 1]
+	# get last 50 served 
+	q50 = qser.tail(50)
+	q50_agents = pd.DataFrame(q50.groupby('server_abv').size().rename('top'))
+	length = q50_agents.index.size
+	q50_agents['left'] = range(1, length * 2, 2)
+	q50_agents['right'] = q50_agents['left'] + 1.5
+
+	# create ColumnDataSource objects from dictionary and dataframes
 	source = ColumnDataSource(wd)
 	s_source = ColumnDataSource(q200)
+	bar_source = ColumnDataSource(q50_agents)
 
-	#return s_source, q50, source
-	return s_source, source
+	#return data sources
+	return s_source, source, bar_source
 
-s_source, source = get_data()
+s_source, source, bar_source = get_data()
 
 # plot timeseries graph showing q time of each call
-service = figure(plot_width=1200, plot_height=500, title="Time in Queue - last 100 calls",
+service = figure(plot_width=850, plot_height=500, title="Time in Queue - last 100 calls",
                      x_axis_type="datetime", x_axis_label="Time", y_axis_label="Queue time (seconds)")
 s1 = service.line('time', 'q_time', source=s_source, 
 	line_width=2, color='grey', alpha=0.6, legend="Q time")
@@ -136,14 +147,21 @@ s4 = service.line('time', 'q_time20ma', source=s_source,
 	line_width=4, color='teal', alpha=1, legend="Moving average 20")
 
 serviceglyphs = [s1, s2, s3, s4]
-'''
-# plot bar chart of agents
-bar = Bar(q50, 'server_abv', 
-        title="Agents - last 50 calls", color='teal',
-        width=350, height=300, legend=False,
-        xlabel="Agent", ylabel="Calls",
-        )
-'''
+
+# plot bar chart using quad glyphs
+bar = figure(width=350, height=500, y_range=Range1d(-5,25),
+             title="Operators - last 50 calls", y_axis_label="Calls")
+quads = bar.quad(top='top', bottom=0, left='left', right='right', 
+    source=bar_source, color="teal")
+labels = LabelSet(x='left', y=0, text='server_abv', source=bar_source,
+    level='glyph', x_offset=20, y_offset=-40, render_mode='canvas', 
+    text_color='black', angle=1.57)
+
+bar.add_layout(labels)
+bar.xaxis.visible = False
+
+
+
 # plot wedges and text 
 w = figure(width=1350, height=300, x_range=Range1d(0,9), y_range=Range1d(0,2))
 waw = w.annular_wedge('xs', 'ys', inner_radius=0.25, outer_radius=0.4, source=source,
@@ -175,7 +193,7 @@ w.ygrid.visible = False
 wedgeglyphs = [waw, wpercent, wt1, wh1, wh2, wn1, wn2]
 
 # make a grid
-grid = gridplot([w], [service])
+grid = gridplot([w], [service, bar])
 
 
 # open a session to keep local doc in sync 
@@ -183,11 +201,12 @@ session = push_session(curdoc())
 
 # callback function to update data sources 
 def update():
-	new_s_source, new_source = get_data()
+	new_s_source, new_source, new_bar_source = get_data()
 	for wedge in wedgeglyphs:
 		wedge.data_source.data = new_source.data
 	for s in serviceglyphs:
 		s.data_source.data = new_s_source.data
+	quads.data_source.data = new_bar_source.data
 
 # set up callback every 5 seconds
 curdoc().add_periodic_callback(update, 5000)
