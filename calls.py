@@ -34,6 +34,14 @@ def set_service(row):
 # read data from csv file into Pandas dataframe
 calls = pd.read_csv('data_files/calls_one_day.csv')
 
+# set up a list of agents as a dataframe
+servers = calls.server_abv.unique()
+servers = servers.tolist()
+servers.sort()
+servers.remove('NO_')
+servers = pd.DataFrame(servers, columns=['name'])
+servers.index = servers['name']
+
 # time of call is vru (voice response unit) entry time
 calls['time'] = make_today(calls['vru_entry'])
 # make this the index
@@ -90,15 +98,22 @@ def get_data():
 
 	q200 = q.tail(100)
 
-	#q50 = q.tail(50)
-
 	centre = [q_percent, lw_sla, avg_current_sla, avg_current_ser]
 	angle = []
 	percent = []
+	colour = []
 
 	# set angles and text for wedges
 	for c in centre:
-	    angle.append((3.6 * (100 - c)) + 90)
+	    if c > 100:
+	        angle.append(90.1)
+	        colour.append('red')
+	    elif c == 100:   
+	        angle.append(90.1)
+	        colour.append('teal')
+	    else:   
+	        angle.append((3.6 * (100 - c)) + 89.9)
+	        colour.append('teal')
 	    percent.append('{0}%'.format(c))
 
 	# build data dictionary for top graph
@@ -111,7 +126,8 @@ def get_data():
 	    n1 = [total_calls, calls_waiting, sla_today, ser_today],
 	    n2 = [total_queued, longest_waiting, avg_current_sla, avg_current_ser],    
 	    percent = percent,
-	    angle = angle
+	    angle = angle,
+	    colour = colour
 	)
 
 	# prepare data for bar chart
@@ -119,15 +135,21 @@ def get_data():
 	qser = q[q['ser'] == 1]
 	# get last 50 served 
 	q50 = qser.tail(50)
+	# count calls per agent
 	q50_agents = pd.DataFrame(q50.groupby('server_abv').size().rename('top'))
-	length = q50_agents.index.size
-	q50_agents['left'] = range(1, length * 2, 2)
-	q50_agents['right'] = q50_agents['left'] + 1.5
+
+	# transfer values to dataframe with all the servers/agents
+	servers['right'] = q50_agents.loc[servers.index]
+	length = servers.index.size
+	servers['bottom'] = range(((length * 2) - 1), 0, -2)
+	servers['top'] = servers['bottom'] + 1.5
+	# fill NaNs with 0
+	servers.fillna(0, inplace=True)
 
 	# create ColumnDataSource objects from dictionary and dataframes
 	source = ColumnDataSource(wd)
 	s_source = ColumnDataSource(q200)
-	bar_source = ColumnDataSource(q50_agents)
+	bar_source = ColumnDataSource(servers)
 
 	#return data sources
 	return s_source, source, bar_source
@@ -136,7 +158,8 @@ s_source, source, bar_source = get_data()
 
 # plot timeseries graph showing q time of each call
 service = figure(plot_width=850, plot_height=500, title="Time in Queue - last 100 calls",
-                     x_axis_type="datetime", x_axis_label="Time", y_axis_label="Queue time (seconds)")
+                     x_axis_type="datetime", x_axis_label="Time",
+                     y_range=Range1d(0,500), y_axis_label="Queue time (seconds)")
 s1 = service.line('time', 'q_time', source=s_source, 
 	line_width=2, color='grey', alpha=0.6, legend="Q time")
 s2 = service.circle('time', 'q_time', source=s_source, 
@@ -145,20 +168,21 @@ s3 = service.line('time', y=300, source=s_source,
 	line_width=2, line_dash=[2,2], color='red', alpha=0.8, legend="300 seconds")
 s4 = service.line('time', 'q_time20ma', source=s_source, 
 	line_width=4, color='teal', alpha=1, legend="Moving average 20")
+service.legend.location = "top_left"
 
 serviceglyphs = [s1, s2, s3, s4]
 
 # plot bar chart using quad glyphs
-bar = figure(width=350, height=500, y_range=Range1d(-5,25),
-             title="Operators - last 50 calls", y_axis_label="Calls")
-quads = bar.quad(top='top', bottom=0, left='left', right='right', 
-    source=bar_source, color="teal")
-labels = LabelSet(x='left', y=0, text='server_abv', source=bar_source,
-    level='glyph', x_offset=20, y_offset=-40, render_mode='canvas', 
-    text_color='black', angle=1.57)
+bar = figure(width=350, height=500, x_range=Range1d(-5,25),
+             title="Operators - last 50 calls", x_axis_label="Calls")
+quads = bar.quad(top='top', bottom='bottom', left=0, right='right', 
+    source=bar_source, fill_color="teal", line_color="white")
+labels = LabelSet(x=0, y='bottom', text='name', source=bar_source,
+    level='glyph', x_offset=-40, y_offset=-2, render_mode='canvas', 
+    text_color='black', angle=0)
 
 bar.add_layout(labels)
-bar.xaxis.visible = False
+bar.yaxis.visible = False
 
 
 
@@ -166,7 +190,7 @@ bar.xaxis.visible = False
 w = figure(width=1350, height=300, x_range=Range1d(0,9), y_range=Range1d(0,2))
 waw = w.annular_wedge('xs', 'ys', inner_radius=0.25, outer_radius=0.4, source=source,
                end_angle_units='deg', start_angle_units='deg', direction='clock',
-                start_angle=90, end_angle='angle', color="teal", alpha=0.9)
+                start_angle=90, end_angle='angle', color='colour', alpha=0.9)
 wpercent = w.text('xs', 'ys', text='percent', text_font_size="14pt", source=source,
     text_align="center", text_baseline="middle", color='teal')
 wt1 = w.text('xs', 'ys', text='t1', source=source, text_font_size='16pt', 
