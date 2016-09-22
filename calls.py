@@ -170,15 +170,16 @@ hover = HoverTool(
                 ("Q exit", "@q_exit"),
                 ("Q time", "@q_time"),
                 ("Outcome", "@outcome"),
-            ]
+            ],
+            names=["circle"]
         )
 service = figure(plot_width=850, plot_height=500, title="Time in Queue - last 100 calls",
                      x_axis_type="datetime", x_axis_label="Time", tools=[hover],
                      y_range=Range1d(0,500), y_axis_label="Queue time (seconds)")
 s1 = service.line('time', 'q_time', source=s_source, 
 	line_width=2, color='grey', alpha=0.6, legend="Q time")
-s2 = service.circle('time', 'q_time', source=s_source, 
-	size=5, color='colour', alpha=0.6, legend="Q time")
+s2 = service.circle('time', 'q_time', name="circle", source=s_source, 
+	size=7, color='colour', alpha=0.6, legend="Q time")
 s3 = service.line('time', y=300, source=s_source, 
 	line_width=2, line_dash=[2,2], color='red', alpha=0.8, legend="300 seconds")
 s4 = service.line('time', 'q_time20ma', source=s_source, 
