@@ -24,12 +24,19 @@ def within_sla(row):
     return val
 
 # return 1 if call is answered by agent
-def set_service(row):
+def get_service(row):
     if row['outcome'] == "AGENT":
         ser = 1
     else:
         ser = 0
     return ser
+
+def get_colour(row):
+    if row['outcome'] == "AGENT":
+        colour = "teal"
+    else:
+        colour = "red"
+    return colour
 
 # read data from csv file into Pandas dataframe
 calls = pd.read_csv('data_files/calls_one_day.csv')
@@ -59,17 +66,17 @@ def get_data():
 	past = calls[calls.index < now]
 
 	# select columns we need for queue data
-	q = past.loc[:,['q_time','q_exit', 'outcome', 'server_abv']]
+	q = past.loc[:,['vru_entry', 'q_time','q_exit', 'outcome', 'server_abv']]
 	q = q[(q['outcome'] == 'AGENT') 
 	      | ((q['q_time'] > 0) & (make_today(q['q_exit']) < now))]
 	     
 	# new columns required for summing and moving averages
 	q['sla'] = q.apply(within_sla, axis=1) 
-	q['ser'] = q.apply(set_service, axis=1)
+	q['ser'] = q.apply(get_service, axis=1)
 	q['sla20ma'] = pd.Series(q['sla']).rolling(window=20).mean()
 	q['ser20ma'] = pd.Series(q['ser']).rolling(window=20).mean()
 	q['q_time20ma'] = pd.Series(q['q_time']).rolling(window=20).mean()
-
+	q['colour'] = q.apply(get_colour, axis=1)
 	
 	total_calls = past.index.size
 	total_queued = q.index.size
@@ -78,9 +85,9 @@ def get_data():
 	sla_today = round(q.sla.mean() * 100, 1)
 	ser_today = round(q.ser.mean() * 100, 1)
 
-	avg_current_sla = round(q.iloc[-1, 6] * 100, 1)
-	avg_current_ser = round(q.iloc[-1, 7] * 100, 1)
-	avg_current_wait = int(q.iloc[-1, 8])
+	avg_current_sla = round(q.iloc[-1, 7] * 100, 1)
+	avg_current_ser = round(q.iloc[-1, 8] * 100, 1)
+	avg_current_wait = int(q.iloc[-1, 9])
 
 	avg_call_length = int(past.ser_time[past.ser_time > 0].mean())
 	total_call_time = past.ser_time.sum()
@@ -118,7 +125,7 @@ def get_data():
 
 	# build data dictionary for top graph
 	wd = dict(
-	    xs = [1, 3, 5, 7],
+	    xs = [0.5, 2.5, 4.5, 6.5],
 	    ys = [1, 1, 1, 1],
 	    t1 = ['Total calls today', 'Calls waiting', 'Answered within SLA', 'Abandoned in queue'],
 	    h1 = ['Calls received', 'Waiting now', 'Today', 'Today'],
@@ -157,18 +164,28 @@ def get_data():
 s_source, source, bar_source = get_data()
 
 # plot timeseries graph showing q time of each call
+hover = HoverTool(
+            tooltips=[
+                ("VRU entry", "@vru_entry"),
+                ("Q exit", "@q_exit"),
+                ("Q time", "@q_time"),
+                ("Outcome", "@outcome"),
+            ]
+        )
 service = figure(plot_width=850, plot_height=500, title="Time in Queue - last 100 calls",
-                     x_axis_type="datetime", x_axis_label="Time",
+                     x_axis_type="datetime", x_axis_label="Time", tools=[hover],
                      y_range=Range1d(0,500), y_axis_label="Queue time (seconds)")
 s1 = service.line('time', 'q_time', source=s_source, 
 	line_width=2, color='grey', alpha=0.6, legend="Q time")
 s2 = service.circle('time', 'q_time', source=s_source, 
-	size=5, color='grey', alpha=0.6, legend="Q time")
+	size=5, color='colour', alpha=0.6, legend="Q time")
 s3 = service.line('time', y=300, source=s_source, 
 	line_width=2, line_dash=[2,2], color='red', alpha=0.8, legend="300 seconds")
 s4 = service.line('time', 'q_time20ma', source=s_source, 
 	line_width=4, color='teal', alpha=1, legend="Moving average 20")
 service.legend.location = "top_left"
+service.grid.visible = False
+service.outline_line_alpha = 0
 
 serviceglyphs = [s1, s2, s3, s4]
 
@@ -183,8 +200,8 @@ labels = LabelSet(x=0, y='bottom', text='name', source=bar_source,
 
 bar.add_layout(labels)
 bar.yaxis.visible = False
-
-
+bar.grid.visible = False
+bar.outline_line_alpha = 0
 
 # plot wedges and text 
 w = figure(width=1350, height=300, x_range=Range1d(0,9), y_range=Range1d(0,2))
@@ -208,11 +225,11 @@ wn1 = w.text('xs', 'ys', text='n1', source=source, text_font_size='14pt',
 wn2 = w.text('xs', 'ys', text='n2', source=source, text_font_size='14pt', 
     text_color='black', x_offset=70, y_offset=30,
     text_align="left", text_baseline="middle", color='teal')
-# hide axes
+# hide axes and grid
 w.xaxis.visible = False
-w.xgrid.visible = False
 w.yaxis.visible = False
-w.ygrid.visible = False
+w.grid.visible = False
+w.outline_line_alpha = 0
 
 wedgeglyphs = [waw, wpercent, wt1, wh1, wh2, wn1, wn2]
 
